@@ -37,16 +37,41 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
+      - name: Build Luis Dharna
         run: pnpm --filter @workspace/luis-dharna run build
+
+      - name: Show build output
+        run: |
+          echo "Buscando archivos generados..."
+          find . -type f -name "index.html" -not -path "./node_modules/*"
+          echo "Directorios dist:"
+          find . -type d -name "dist" -not -path "./node_modules/*"
+
+      - name: Prepare Pages
+        run: |
+          rm -rf ./pages
+          mkdir -p ./pages
+
+          DIST=$(find . -type d -path "*/dist" -not -path "./node_modules/*" | head -n 1)
+
+          if [ -z "$DIST" ]; then
+            echo "ERROR: No se encontró ningún directorio dist."
+            exit 1
+          fi
+
+          echo "Usando build: $DIST"
+          cp -R "$DIST"/. ./pages/
+
+          echo "Contenido de Pages:"
+          find ./pages -maxdepth 2 -type f
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload artifact
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: artifacts/luis-dharna
+          path: ./pages
 
   deploy:
     environment:
@@ -57,6 +82,6 @@ jobs:
     needs: build
 
     steps:
-      - name: Deploy to GitHub Pages
+      - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
